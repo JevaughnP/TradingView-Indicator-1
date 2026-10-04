@@ -1,0 +1,125 @@
+//@version=5
+indicator("Jevaughn's Bias indicator", overlay = true)
+
+//------------------------------------------------------------------------------
+// SETTINGS
+//------------------------------------------------------------------------------
+fastEMA = input.int(20, "Fast EMA")
+slowEMA = input.int(50, "Slow EMA")
+
+// Dashboard
+showDash = input(true, "Show Dashboard", group = "Dashboard")
+
+dashLoc = input.string(
+     "Top Right",
+     "Location",
+     options = ["Top Right", "Top Left", "Bottom Right", "Bottom Left"],
+     group = "Dashboard")
+
+textSize = input.string(
+     "Small",
+     "Text Size",
+     options = ["Tiny", "Small", "Normal"],
+     group = "Dashboard")
+
+//------------------------------------------------------------------------------
+// BIAS FUNCTION
+//------------------------------------------------------------------------------
+getBias(tf) =>
+    fast = request.security(syminfo.tickerid, tf, ta.ema(close, fastEMA))
+    slow = request.security(syminfo.tickerid, tf, ta.ema(close, slowEMA))
+    price = request.security(syminfo.tickerid, tf, close)
+
+    bullish = price > fast and fast > slow
+    bearish = price < fast and fast < slow
+
+    bullish ? "BULLISH" :
+     bearish ? "BEARISH" :
+     "NEUTRAL"
+
+//------------------------------------------------------------------------------
+// GET BIAS
+//------------------------------------------------------------------------------
+bias30M = getBias("30")
+bias1H  = getBias("60")
+bias4H  = getBias("240")
+
+//------------------------------------------------------------------------------
+// COLORS
+//------------------------------------------------------------------------------
+getColor(bias) =>
+    bias == "BULLISH" ? color.lime :
+     bias == "BEARISH" ? color.red :
+     color.gray
+
+//------------------------------------------------------------------------------
+// TABLE SETTINGS
+//------------------------------------------------------------------------------
+var table_position = dashLoc == "Top Left" ? position.top_left :
+     dashLoc == "Bottom Left" ? position.bottom_left :
+     dashLoc == "Bottom Right" ? position.bottom_right :
+     position.top_right
+
+var table_size = textSize == "Tiny" ? size.tiny :
+     textSize == "Small" ? size.small :
+     size.normal
+
+//------------------------------------------------------------------------------
+// TABLE
+//------------------------------------------------------------------------------
+var tb = table.new(
+     table_position,
+     2,
+     4,
+     bgcolor = #1e222d,
+     border_color = #373a46,
+     border_width = 1,
+     frame_color = #373a46,
+     frame_width = 1)
+
+//------------------------------------------------------------------------------
+// HEADER
+//------------------------------------------------------------------------------
+if barstate.isfirst and showDash
+    table.cell(tb, 0, 0, "TIMEFRAME",
+         text_color = color.white,
+         text_size = table_size)
+
+    table.cell(tb, 1, 0, "BIAS",
+         text_color = color.white,
+         text_size = table_size)
+
+//------------------------------------------------------------------------------
+// UPDATE TABLE
+//------------------------------------------------------------------------------
+if barstate.islast and showDash
+
+    // 30M
+    table.cell(tb, 0, 1, "30 Minute",
+         text_color = color.white,
+         text_size = table_size)
+
+    table.cell(tb, 1, 1, bias30M,
+         text_color = color.white,
+         bgcolor = getColor(bias30M),
+         text_size = table_size)
+
+    // 1H
+    table.cell(tb, 0, 2, "1 Hour",
+         text_color = color.white,
+         text_size = table_size)
+
+    table.cell(tb, 1, 2, bias1H,
+         text_color = color.white,
+         bgcolor = getColor(bias1H),
+         text_size = table_size)
+
+    // 4H
+    table.cell(tb, 0, 3, "4 Hour",
+         text_color = color.white,
+         text_size = table_size)
+
+    table.cell(tb, 1, 3, bias4H,
+         text_color = color.white,
+         bgcolor = getColor(bias4H),
+         text_size = table_size)
